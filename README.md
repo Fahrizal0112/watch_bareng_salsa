@@ -88,7 +88,30 @@ npm start       # http://localhost:3000
 ## Kalau PeerJS cloud bermasalah atau koneksi gagal
 
 - Server publik PeerJS gratis dan kadang lambat atau penuh. Kalau mau yang stabil, jalankan server sendiri (`npx peerjs --port 9000`, deploy ke Render/Railway/Fly.io) lalu isi `peerServer` di `public/config.js`.
-- Di jaringan dengan NAT ketat, video bisa gagal tersambung. Tambahkan server TURN di `iceServers` pada `public/config.js`.
+- Penonton di jaringan lain yang macet di "Menyambung…": lihat bagian TURN di bawah.
+
+## Penonton di jaringan lain tidak bisa tersambung (TURN)
+
+Video dikirim langsung antar browser. Di jaringan rumah biasa itu berhasil dengan bantuan server STUN, tapi di banyak jaringan (terutama seluler, atau wifi dengan NAT ketat) sambungan langsung tidak bisa terbentuk. Gejalanya: halaman penonton macet di "Menyambung…" atau "Sambungan ke host gagal", dan badge "Relay (TURN)" di halaman host berwarna kuning. Obatnya server **TURN**, yang meneruskan data lewat server perantara. TURN hanya dipakai kalau sambungan langsung gagal.
+
+Kredensial TURN disimpan di Environment Variables Vercel (bukan di repo), dan situs mengambilnya lewat `/api/ice`. Pilih salah satu layanan:
+
+**Metered** (gratis 20 GB per bulan, perlu daftar akun)
+1. Daftar di https://dashboard.metered.ca/signup?tool=turnserver, lalu buat app. Catat nama app-nya (alamatnya `nama-app.metered.live`) dan API key dari bagian TURN credential ("Show API Key"). Jangan pakai Secret Key.
+2. Di Vercel: Project > Settings > Environment Variables, tambahkan `METERED_APP` (nama app saja, tanpa `.metered.live`) dan `METERED_API_KEY`.
+3. Redeploy project (Deployments > titik tiga > Redeploy).
+
+**Cloudflare Realtime TURN** (alternatif)
+1. Buat TURN key di dashboard Cloudflare (Realtime > TURN). Catat Key ID dan API token-nya.
+2. Di Vercel tambahkan `CF_TURN_KEY_ID` dan `CF_TURN_API_TOKEN`, lalu redeploy. Cek halaman penagihan Cloudflare untuk kuota gratisnya.
+
+**Server sendiri** (misalnya coturn): isi `TURN_URL` (boleh beberapa, dipisah koma), `TURN_USER`, `TURN_PASS`.
+
+Cara memeriksa:
+- Buka `https://alamat-kamu.vercel.app/api/ice`. Hasilnya harus berisi `"turn":true`. Kalau `false` dan ada isi `"error"`, kunci atau nama app salah.
+- Di halaman host, badge menjadi hijau "Relay (TURN): aktif".
+
+Hemat kuota: video lewat relay memakai kuota data. Pada kualitas "Terbaik" bisa beberapa GB per jam, jadi minta penonton memilih 720p atau 480p kalau memakai relay.
 
 ## Masalah umum
 
@@ -106,5 +129,7 @@ npm start       # http://localhost:3000
 
 - `public/`: situs statis. Halaman host (`index.html`, `host.js`), penonton (`watch.html`, `watch.js`), helper mic/kamera (`media.js`), konfigurasi (`config.js`), PeerJS (`vendor/`)
 - `extension/`: ekstensi Chrome (Manifest V3). `bridge.js` (jembatan dari halaman host), `background.js` (memilih tab video), `player-relay.js` + `player-main.js` (mengontrol pemutar)
-- `server.js`: server statis kecil untuk dev lokal saja
+- `api/ice.js`: fungsi serverless Vercel yang memberi daftar server STUN/TURN (kredensial dari Environment Variables)
+- `public/ice.js`: helper klien yang memanggil `/api/ice`, dengan cadangan `iceServers` dari `config.js`
+- `server.js`: server statis kecil untuk dev lokal saja (tidak punya `/api/ice`, jadi memakai `config.js`)
 - `vercel.json`: konfigurasi deploy

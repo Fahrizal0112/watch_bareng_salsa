@@ -41,6 +41,7 @@
     <div class="badges">
       <span class="badge" id="b-conn">Server: menyambung…</span>
       <span class="badge" id="b-viewers">Penonton: 0</span>
+      <span class="badge" id="b-turn" title="Server relay membantu penonton di jaringan lain tersambung">Relay (TURN): -</span>
     </div>
     <video id="preview" autoplay muted playsinline hidden></video>
   </section>
@@ -61,6 +62,7 @@
   </section>
 </main>
 <script src="/config.js"></script>
+<script src="/ice.js"></script>
 <script src="/vendor/peerjs.min.js"></script>
 <script src="/media.js"></script>
 <script src="/host.js"></script>

@@ -349,8 +349,16 @@
   }
 
   let tries = 0;
-  function startPeer() {
-    const opts = { config: { iceServers: cfg.iceServers }, ...(cfg.peerServer || {}) };
+  async function startPeer() {
+    // STUN, plus TURN (relay) kalau sudah diatur di Vercel. Tanpa TURN, penonton di jaringan
+    // berbeda (terutama seluler) sering tidak bisa tersambung.
+    const ice = await wtIce();
+    setBadge(
+      $('#b-turn'),
+      ice.turn ? 'Relay (TURN): aktif' : 'Relay (TURN): belum diatur',
+      ice.turn ? 'ok' : 'warn'
+    );
+    const opts = { config: { iceServers: ice.iceServers }, ...(cfg.peerServer || {}) };
     peer = new Peer(`wt-${room}`, opts);
     peer.on('open', () => {
       tries = 0;

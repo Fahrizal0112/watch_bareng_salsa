@@ -245,6 +245,25 @@
     conn = peer.connect(hostId, { serialization: 'json', reliable: true });
     const mine = conn;
 
+    // Tahap kedua yang bisa macet: server tersambung, tapi sambungan langsung ke host tidak
+    // terbentuk (ICE gagal, biasanya karena jaringan butuh server TURN). PeerJS tidak
+    // memberi error dalam kasus ini, jadi kita pantau sendiri dan coba lagi sampai 3 kali.
+    setTimeout(() => {
+      if (conn !== mine || mine.open || !peer || peer.destroyed) return;
+      showDiag();
+      if (++connectTries < 3) {
+        showWait('Sambungan langsung ke host belum terbentuk. Mencoba lagi…');
+        connectHost();
+      } else {
+        setStatus('Sambungan ke host gagal');
+        showWait(
+          iceInfo.turn
+            ? 'Sambungan langsung ke host gagal walau memakai server relay. Minta host refresh halamannya, lalu refresh halaman ini.'
+            : 'Sambungan langsung ke host gagal. Jaringan kalian kemungkinan butuh server TURN (relay). Lihat README bagian TURN, lalu kirim tulisan di bawah ke yang punya situsnya.'
+        );
+      }
+    }, 12000);
+
     // Pesan status awal dari host kadang hilang di awal sambungan, jadi kita yang meminta
     // ("hello") dan mengulang sampai jawabannya datang.
     let gotInfo = false;
@@ -255,6 +274,8 @@
     };
 
     mine.on('open', () => {
+      connectTries = 0;
+      $('#diag').classList.add('hidden');
       setStatus('Terhubung ke host');
       showWait('Menunggu host membagikan layar…');
       refreshControls();
@@ -297,12 +318,17 @@
 
   // ---- Diagnosis: kalau macet di "Menyambung…", tampilkan penyebabnya di layar ----
   let attempts = 0;
+  let connectTries = 0;
+  let iceInfo = { turn: false };
   let lastError = '';
   async function showDiag() {
     const box = $('#diag');
     box.classList.remove('hidden');
     const lines = ['Pustaka koneksi: ' + (typeof Peer === 'function' ? 'ok' : 'GAGAL dimuat')];
     lines.push('Online: ' + (navigator.onLine ? 'ya' : 'tidak'));
+    lines.push('Server relay (TURN): ' + (iceInfo.turn ? 'ada' : 'tidak ada, hanya STUN'));
+    const pc = conn && conn.peerConnection;
+    lines.push('Status sambungan ke host: ' + (pc ? pc.iceConnectionState : '-'));
     const ps = cfg.peerServer || {};
     const host = ps.host || '0.peerjs.com';
     const url = `https://${host}${ps.port && ps.port !== 443 ? ':' + ps.port : ''}${ps.path || '/'}peerjs/id`;
@@ -322,14 +348,16 @@
     box.textContent = lines.join('\n');
   }
 
-  function startPeer() {
+  async function startPeer() {
     if (typeof Peer !== 'function') {
       lastError = 'pustaka PeerJS tidak termuat';
       showWait('Pustaka koneksi gagal dimuat. Refresh halaman ini atau pakai browser yang lebih baru.');
       showDiag();
       return;
     }
-    const opts = { config: { iceServers: cfg.iceServers }, ...(cfg.peerServer || {}) };
+    // Daftar server ICE (STUN, plus TURN kalau host sudah mengaturnya di Vercel).
+    iceInfo = await wtIce();
+    const opts = { config: { iceServers: iceInfo.iceServers }, ...(cfg.peerServer || {}) };
     try {
       peer = new Peer(opts);
     } catch (err) {
