@@ -57,9 +57,19 @@
     setBadge($('#b-ext'), 'Ekstensi: terpasang', 'ok');
     if (e.data.hasTarget) setBadge($('#b-nf'), 'Video: ' + (e.data.site || 'terdeteksi'), 'ok');
     else setBadge($('#b-nf'), 'Video: belum ada yang diputar', 'warn');
-    $('#ext-hint').textContent = e.data.hasTarget
-      ? ''
-      : 'Putar videonya di tab lain (Netflix, YouTube, dll) dan jangan di-mute. Tab yang sudah terbuka sebelum ekstensi dipasang perlu di-refresh.';
+
+    if (e.data.forType === 'cmd' && e.data.hasTarget && e.data.delivered === false) {
+      // Perintah dari penonton diterima tapi tab videonya tidak punya script ekstensi.
+      $('#ext-hint').textContent =
+        'Perintah penonton gagal sampai ke ' + (e.data.site || 'tab video') + '. Refresh tab video itu (F5) lalu coba lagi.';
+    } else if (e.data.forType === 'cmd' && !e.data.hasTarget) {
+      $('#ext-hint').textContent =
+        'Perintah penonton diterima, tapi tidak ada tab video yang ditemukan. Putar videonya di tab lain dan jangan di-mute.';
+    } else if (e.data.forType === 'ping') {
+      $('#ext-hint').textContent = e.data.hasTarget
+        ? ''
+        : 'Putar videonya di tab lain (Netflix, YouTube, dll) dan jangan di-mute.';
+    }
   });
   const ping = () => window.postMessage({ source: 'wt-page', type: 'ping' }, location.origin);
   setInterval(ping, 3000);
@@ -311,6 +321,10 @@
         applyQuality(v);
       } else if (m.t === 'media') {
         onRemoteMedia(conn.peer, m);
+      } else if (m.t === 'hello') {
+        // Penonton meminta status awal (pesan pertama dari kita kadang tidak sampai).
+        sendInfo(conn);
+        sendMedia(conn);
       } else {
         handleControl(m);
       }

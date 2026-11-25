@@ -133,7 +133,7 @@
     },
   };
 
-  window.addEventListener('message', (e) => {
+  const onMessage = (e) => {
     if (e.source !== window || !e.data || e.data.source !== 'wt-to-main') return;
     const fn = actions[e.data.cmd];
     // Frame tanpa video diabaikan, supaya tombol di iklan/iframe lain tidak ikut tertekan.
@@ -143,5 +143,10 @@
     } catch (err) {
       console.warn('[watch-together]', err);
     }
-  });
+  };
+  // Script ini bisa terpasang lebih dari sekali di halaman yang sama (misalnya setelah ekstensi
+  // di-reload). Buang pendengar lama supaya satu perintah tidak dieksekusi dua kali.
+  if (window.__wtPlayerListener) window.removeEventListener('message', window.__wtPlayerListener);
+  window.__wtPlayerListener = onMessage;
+  window.addEventListener('message', onMessage);
 })();

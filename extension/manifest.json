@@ -3,7 +3,7 @@
   "name": "Watch Together - Kontrol Pemutar",
   "version": "2.0.0",
   "description": "Meneruskan perintah dari halaman Watch Together ke pemutar video di tab lain (Netflix, YouTube, Prime Video, dll).",
-  "permissions": ["storage"],
+  "permissions": ["storage", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [

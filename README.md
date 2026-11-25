@@ -38,7 +38,7 @@ vercel --prod
 
    Pakai alamat yang persis milik kamu, jangan `*.vercel.app`, supaya situs lain tidak bisa mengontrol pemutar kamu.
 2. Buka `chrome://extensions`, aktifkan **Developer mode**, klik **Load unpacked**, pilih folder `extension`. Kalau sudah terpasang, klik tombol reload di kartunya.
-3. Tab video yang sudah terbuka sebelum ekstensi dipasang perlu di-refresh.
+3. Tidak perlu refresh tab apa pun: saat ekstensi dipasang atau di-reload, ia memasang dirinya sendiri ke tab yang sudah terbuka (termasuk halaman host).
 
 Catatan keamanan: bagian pemutar ekstensi (`player-relay.js`, `player-main.js`) dipasang di semua situs supaya bisa dipakai di layanan apa pun. Keduanya tidak membaca isi halaman dan tidak mengirim apa pun ke luar. Mereka hanya bereaksi terhadap perintah dari background ekstensi, dan perintah itu hanya datang dari halaman yang terdaftar di `matches` bagian `bridge.js`. Kalau mau membatasi, ganti `<all_urls>` di dua `content_scripts` terakhir dengan daftar situs pilihan kamu.
 
@@ -66,6 +66,15 @@ Penonton bisa memilih kualitas dari dropdown di bar kontrol: Terbaik, 720p, 480p
 - **Pakai headset**, terutama host. Kalau film keluar dari speaker, mic host menangkapnya lagi dan pasangan mendengar suara film dobel dengan jeda.
 - Dirancang untuk dua orang. Kalau ada penonton ketiga, dia melihat kamera host tapi tidak melihat kamera penonton lain.
 
+## Penonton lewat iPad atau HP
+
+Penonton **tidak perlu memasang apa pun**. Cukup buka link di Safari atau Chrome, lalu ketuk **Gabung**. Ekstensi hanya untuk host dan hanya bisa dipasang di Chrome desktop.
+
+- Kalau suara atau video tidak langsung main, akan muncul tombol "Ketuk untuk memutar". Itu pembatasan pemutaran otomatis di Safari.
+- Bar kontrol tersembunyi setelah 3 detik. Sentuh layar untuk memunculkannya lagi.
+- Pintasan keyboard tidak berlaku di layar sentuh, pakai tombol di layar.
+- Mic dan kamera butuh izin Safari (Pengaturan > Safari > Kamera/Mikrofon, atau lewat ikon "aA" di address bar).
+
 ## Dev lokal
 
 ```bash
@@ -82,7 +91,8 @@ npm start       # http://localhost:3000
 
 - **Layar pasangan hitam**: layanan seperti Netflix memakai DRM. Bagikan **tab Chrome** (bukan seluruh layar). Di Windows, matikan Chrome > Settings > System > "Use graphics acceleration when available", lalu restart Chrome.
 - **Tidak ada suara film**: share tab, bukan layar penuh, dan centang "Bagikan audio tab". Share seluruh layar di macOS tidak membawa suara.
-- **Badge "Video: belum ada yang diputar"**: putar videonya (tidak di-mute) di tab lain, lebih dari 320×180 px, lalu refresh tab itu kalau dibuka sebelum ekstensi dipasang. Kalau ada beberapa tab video, yang dikontrol adalah yang sedang bersuara atau paling baru diputar.
+- **Badge "Video: belum ada yang diputar"**: buka videonya (tidak di-mute) di tab lain, ukuran video lebih dari 320×180 px. Kalau ada beberapa tab video, yang dikontrol adalah yang sedang bersuara, lalu yang paling baru diputar, lalu yang paling baru terlihat punya video.
+- **Pesan "Perintah penonton gagal sampai ke ..."**: tab video itu belum punya script ekstensi. Refresh tab tersebut (F5).
 - **Skip intro / next tidak bereaksi**: selector tombol situs sering berubah. Netflix, YouTube, dan Prime punya selector sendiri, situs lain dicari lewat teks tombolnya ("Next episode", "Skip intro", "Lewati"). Perbaiki di `extension/player-main.js`.
 - **Badge ekstensi "belum terdeteksi"**: pastikan alamat situs ada di `matches` manifest, reload ekstensi, lalu refresh halaman host.
 - **"Menunggu sesi lama habis" setelah refresh host**: normal, server PeerJS butuh beberapa detik melepas sesi lama.

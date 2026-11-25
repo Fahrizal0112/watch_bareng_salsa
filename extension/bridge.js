@@ -9,7 +9,7 @@ window.addEventListener('message', async (e) => {
 
   try {
     const res = await chrome.runtime.sendMessage({ type, cmd, ms: Number(ms) || 0 });
-    window.postMessage({ source: 'wt-ext', type: 'status', ...res }, location.origin);
+    window.postMessage({ source: 'wt-ext', type: 'status', forType: type, ...res }, location.origin);
   } catch {
     // Ekstensi baru di-reload: konteks lama tidak valid, refresh halaman untuk memulihkan.
   }

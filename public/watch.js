@@ -61,9 +61,25 @@
     else if (e.key.toLowerCase() === 'v') toggleMedia('cam');
   });
   function toggleFullscreen() {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else $('#stage').requestFullscreen().catch(() => {});
+    // Safari (iPad) memakai versi webkit, dan di iPhone hanya video yang bisa layar penuh.
+    const stage = $('#stage');
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else if (stage.requestFullscreen) stage.requestFullscreen().catch(() => {});
+    else if (stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
+    else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
   }
+
+  // Safari sering menolak play() otomatis. Kalau ditolak, minta penonton mengetuk sekali.
+  function playMedia(el) {
+    const p = el.play();
+    if (p && p.catch) p.catch(() => $('#tap').classList.remove('hidden'));
+  }
+  $('#tap-btn').addEventListener('click', () => {
+    $('#tap').classList.add('hidden');
+    video.play().catch(() => {});
+    $('#hostmic').play().catch(() => {});
+  });
   $('#fs').addEventListener('click', toggleFullscreen);
 
   // ---- Video call: mic dan kamera dua arah ----
@@ -183,10 +199,20 @@
     conn = peer.connect(hostId, { serialization: 'json', reliable: true });
     const mine = conn;
 
+    // Pesan status awal dari host kadang hilang di awal sambungan, jadi kita yang meminta
+    // ("hello") dan mengulang sampai jawabannya datang.
+    let gotInfo = false;
+    const hello = (n) => {
+      if (gotInfo || n > 8 || !mine.open || conn !== mine) return;
+      mine.send({ t: 'hello' });
+      setTimeout(() => hello(n + 1), 1500);
+    };
+
     mine.on('open', () => {
       setStatus('Terhubung ke host');
       showWait('Menunggu host membagikan layar…');
       refreshControls();
+      hello(0);
       sendQuality();
       sendMedia();
       // Setelah sambung ulang, panggilan lama sudah mati: telepon host lagi kalau mic/kamera masih nyala.
@@ -195,6 +221,7 @@
     });
     mine.on('data', (m) => {
       if (!m) return;
+      if (m.t === 'info') gotInfo = true;
       if (m.t === 'media') {
         // Host mematikan kamera/mic: panggilannya tidak memberi tahu kita, jadi pakai pesan ini.
         if (!m.cam) showHostCam(null);
@@ -244,14 +271,14 @@
         call.answer();
         call.on('stream', (s) => {
           $('#hostmic').srcObject = s;
-          $('#hostmic').play().catch(() => {});
+          playMedia($('#hostmic'));
         });
         return;
       }
       call.answer(undefined, { sdpTransform: boostBitrate });
       call.on('stream', (s) => {
         video.srcObject = s;
-        video.play().catch(() => {});
+        playMedia(video);
         $('#wait').classList.add('hidden');
       });
       call.on('close', () => {
