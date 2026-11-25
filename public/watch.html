@@ -21,6 +21,18 @@
 
   <div class="status-pill" id="pill">Menyambung…</div>
 
+  <div class="tiles overlay" id="tiles">
+    <div class="tile" id="host-tile" hidden>
+      <video id="hostcam" autoplay playsinline></video>
+      <span class="tl">Host</span>
+    </div>
+    <div class="tile" id="self-tile" hidden>
+      <video id="selfcam" class="mirror" autoplay muted playsinline></video>
+      <span class="tl">Kamu</span>
+    </div>
+  </div>
+  <audio id="hostmic" autoplay></audio>
+
   <div class="controls" id="controls">
     <button data-cmd="seek" data-ms="-10000" title="Mundur 10 detik (←)">⏪ 10</button>
     <button data-cmd="toggle" title="Play / Pause (Spasi)">⏯</button>
@@ -29,11 +41,22 @@
     <button data-cmd="skip-intro" title="Lewati intro">Skip intro</button>
     <button data-cmd="next" title="Episode berikutnya">Next ⏭</button>
     <span class="sep"></span>
+    <button class="tbtn" id="mic" aria-pressed="false" title="Nyalakan / matikan mic (M)">🎤 Off</button>
+    <button class="tbtn" id="cam" aria-pressed="false" title="Nyalakan / matikan kamera (V)">📷 Off</button>
+    <span class="sep"></span>
+    <select id="quality" title="Kualitas video">
+      <option value="best">Kualitas: Terbaik</option>
+      <option value="720">720p</option>
+      <option value="480">480p</option>
+      <option value="360">360p</option>
+    </select>
+    <span class="res" id="res" title="Resolusi yang sedang diterima"></span>
     <button id="fs" title="Layar penuh (F)">⛶</button>
   </div>
 </div>
 <script src="/config.js"></script>
 <script src="/vendor/peerjs.min.js"></script>
+<script src="/media.js"></script>
 <script src="/watch.js"></script>
 </body>
 </html>

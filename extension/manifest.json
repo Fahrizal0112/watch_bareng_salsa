@@ -1,24 +1,27 @@
 {
   "manifest_version": 3,
-  "name": "Watch Together - Kontrol Netflix",
-  "version": "1.0.0",
-  "description": "Meneruskan perintah dari halaman Watch Together ke tab Netflix (play, pause, seek, next).",
-  "host_permissions": ["*://*.netflix.com/*"],
+  "name": "Watch Together - Kontrol Pemutar",
+  "version": "2.0.0",
+  "description": "Meneruskan perintah dari halaman Watch Together ke pemutar video di tab lain (Netflix, YouTube, Prime Video, dll).",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
-      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://watchbarengsalsa.vercel.app/*"],
       "js": ["bridge.js"],
       "run_at": "document_start"
     },
     {
-      "matches": ["*://*.netflix.com/*"],
-      "js": ["netflix-relay.js"],
+      "matches": ["<all_urls>"],
+      "all_frames": true,
+      "js": ["player-relay.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": ["*://*.netflix.com/*"],
-      "js": ["netflix-main.js"],
+      "matches": ["<all_urls>"],
+      "all_frames": true,
+      "js": ["player-main.js"],
       "world": "MAIN",
       "run_at": "document_idle"
     }

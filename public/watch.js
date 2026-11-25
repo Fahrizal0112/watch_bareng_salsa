@@ -52,16 +52,124 @@
     b.addEventListener('click', () => cmd(b.dataset.cmd, b.dataset.ms ? Number(b.dataset.ms) : undefined))
   );
   document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === ' ') { e.preventDefault(); cmd('toggle'); }
     else if (e.key === 'ArrowLeft') cmd('seek', -10000);
     else if (e.key === 'ArrowRight') cmd('seek', 10000);
     else if (e.key.toLowerCase() === 'f') toggleFullscreen();
+    else if (e.key.toLowerCase() === 'm') toggleMedia('mic');
+    else if (e.key.toLowerCase() === 'v') toggleMedia('cam');
   });
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
     else $('#stage').requestFullscreen().catch(() => {});
   }
   $('#fs').addEventListener('click', toggleFullscreen);
+
+  // ---- Video call: mic dan kamera dua arah ----
+  const local = { mic: null, cam: null };
+  const sendMedia = () => {
+    if (conn && conn.open) conn.send({ t: 'media', mic: !!local.mic, cam: !!local.cam });
+  };
+  // Mic dan kamera dikirim ke host lewat panggilan terpisah (lihat media.js).
+  const calls = { mic: null, cam: null };
+  function dialMedia(kind) {
+    if (calls[kind]) {
+      calls[kind].close();
+      calls[kind] = null;
+    }
+    if (local[kind] && peer && conn && conn.open) {
+      calls[kind] = peer.call(hostId, local[kind], { metadata: { kind } });
+    }
+  }
+  function refreshMediaUI() {
+    $('#mic').setAttribute('aria-pressed', String(!!local.mic));
+    $('#cam').setAttribute('aria-pressed', String(!!local.cam));
+    $('#mic').textContent = local.mic ? '🎤 On' : '🎤 Off';
+    $('#cam').textContent = local.cam ? '📷 On' : '📷 Off';
+    $('#selfcam').srcObject = local.cam || null;
+    $('#self-tile').hidden = !local.cam;
+  }
+  async function toggleMedia(kind) {
+    const btn = $(kind === 'mic' ? '#mic' : '#cam');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      if (local[kind]) {
+        wtMedia.stop(local[kind]);
+        local[kind] = null;
+      } else {
+        let s;
+        try {
+          s = await wtMedia.acquire(kind);
+        } catch (err) {
+          setStatus(wtMedia.errorText(kind, err));
+          wake();
+          return;
+        }
+        local[kind] = s;
+        s.getTracks()[0].addEventListener('ended', () => {
+          if (local[kind] === s) toggleMedia(kind);
+        });
+      }
+      dialMedia(kind);
+      sendMedia();
+      refreshMediaUI();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  $('#mic').addEventListener('click', (e) => { toggleMedia('mic'); e.currentTarget.blur(); });
+  $('#cam').addEventListener('click', (e) => { toggleMedia('cam'); e.currentTarget.blur(); });
+  function showHostCam(stream) {
+    $('#hostcam').srcObject = stream;
+    $('#host-tile').hidden = !stream;
+  }
+
+  // ---- Kualitas video (dipilih penonton, diterapkan oleh host) ----
+  const qualitySel = $('#quality');
+  try {
+    const saved = localStorage.getItem('wt-quality');
+    if (saved && [...qualitySel.options].some((o) => o.value === saved)) qualitySel.value = saved;
+  } catch {}
+  const sendQuality = () => {
+    if (conn && conn.open) conn.send({ t: 'quality', value: qualitySel.value });
+  };
+  qualitySel.addEventListener('change', () => {
+    try { localStorage.setItem('wt-quality', qualitySel.value); } catch {}
+    sendQuality();
+    qualitySel.blur(); // supaya spasi dan panah tetap jadi kontrol video
+  });
+  // Tampilkan resolusi yang benar-benar sedang diterima.
+  setInterval(() => {
+    $('#res').textContent = video.srcObject && video.videoHeight ? `${video.videoWidth}×${video.videoHeight}` : '';
+  }, 1500);
+
+  // Browser mengirim video dengan bitrate awal rendah lalu naik pelan, itu yang membuat
+  // gambar pecah di awal. Jawaban SDP kita beri bitrate awal dan minimum yang lebih tinggi
+  // (parameter x-google-*, dibaca pengirim Chrome; browser lain mengabaikannya).
+  function boostBitrate(sdp) {
+    const lines = sdp.split('\r\n');
+    const out = [];
+    let inVideo = false;
+    const hasFmtp = new Set();
+    lines.forEach((l) => {
+      const m = l.match(/^a=fmtp:(\d+) /);
+      if (m) hasFmtp.add(m[1]);
+    });
+    const params = 'x-google-start-bitrate=4000;x-google-min-bitrate=1500';
+    for (const l of lines) {
+      if (l.startsWith('m=')) inVideo = l.startsWith('m=video');
+      if (inVideo && l.startsWith('a=fmtp:') && !l.includes('apt=')) {
+        out.push(`${l};${params}`);
+        continue;
+      }
+      out.push(l);
+      const r = l.match(/^a=rtpmap:(\d+) (VP8|VP9|H264|AV1)\//);
+      if (inVideo && r && !hasFmtp.has(r[1])) out.push(`a=fmtp:${r[1]} ${params}`);
+    }
+    return out.join('\r\n');
+  }
 
   // ---- Sambung ke host lewat PeerJS ----
   function scheduleReconnect(ms) {
@@ -79,10 +187,19 @@
       setStatus('Terhubung ke host');
       showWait('Menunggu host membagikan layar…');
       refreshControls();
+      sendQuality();
+      sendMedia();
+      // Setelah sambung ulang, panggilan lama sudah mati: telepon host lagi kalau mic/kamera masih nyala.
+      dialMedia('mic');
+      dialMedia('cam');
     });
     mine.on('data', (m) => {
       if (!m) return;
-      if (m.t === 'info') {
+      if (m.t === 'media') {
+        // Host mematikan kamera/mic: panggilannya tidak memberi tahu kita, jadi pakai pesan ini.
+        if (!m.cam) showHostCam(null);
+        if (!m.mic) $('#hostmic').srcObject = null;
+      } else if (m.t === 'info') {
         controlAllowed = !!m.control;
         refreshControls();
         setStatus(controlAllowed ? 'Terhubung · kamu bisa mengontrol' : 'Terhubung · kontrol dikunci host');
@@ -95,6 +212,9 @@
       if (conn !== mine) return;
       controlAllowed = false;
       clearVideo();
+      showHostCam(null);
+      $('#hostmic').srcObject = null;
+      calls.mic = calls.cam = null;
       refreshControls();
       setStatus('Host terputus');
       showWait('Host terputus. Mencoba menyambung lagi…');
@@ -108,8 +228,27 @@
     peer.on('open', connectHost);
 
     // Host memanggil kita ketika mulai (atau mulai ulang) share layar.
+    // Hanya terima panggilan dari host: layar (default), kamera, atau mic.
     peer.on('call', (call) => {
-      call.answer();
+      const kind = (call.metadata && call.metadata.kind) || 'screen';
+      if (call.peer !== hostId || !['screen', 'cam', 'mic'].includes(kind)) {
+        call.close();
+        return;
+      }
+      if (kind === 'cam') {
+        call.answer();
+        call.on('stream', showHostCam);
+        return;
+      }
+      if (kind === 'mic') {
+        call.answer();
+        call.on('stream', (s) => {
+          $('#hostmic').srcObject = s;
+          $('#hostmic').play().catch(() => {});
+        });
+        return;
+      }
+      call.answer(undefined, { sdpTransform: boostBitrate });
       call.on('stream', (s) => {
         video.srcObject = s;
         video.play().catch(() => {});

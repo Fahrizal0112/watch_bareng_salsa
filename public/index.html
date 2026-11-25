@@ -15,7 +15,7 @@
     <h2>1. Cek ekstensi</h2>
     <div class="badges">
       <span class="badge" id="b-ext">Ekstensi: mengecek…</span>
-      <span class="badge" id="b-nf">Netflix: -</span>
+      <span class="badge" id="b-nf">Video: -</span>
     </div>
     <p class="hint" id="ext-hint"></p>
   </section>
@@ -37,16 +37,32 @@
       <button id="stop" disabled>Berhenti</button>
       <label class="switch"><input type="checkbox" id="allow" checked> Izinkan pasangan mengontrol</label>
     </div>
-    <p class="hint">Di jendela pilihan Chrome, pilih tab Netflix dan centang "Bagikan audio tab".</p>
+    <p class="hint">Di jendela pilihan Chrome, pilih tab yang memutar film dan centang "Bagikan audio tab".</p>
     <div class="badges">
       <span class="badge" id="b-conn">Server: menyambung…</span>
       <span class="badge" id="b-viewers">Penonton: 0</span>
     </div>
     <video id="preview" autoplay muted playsinline hidden></video>
   </section>
+
+  <section class="card">
+    <h2>4. Video call (opsional)</h2>
+    <div class="row">
+      <button class="tbtn" id="mic" aria-pressed="false">🎤 Mic: mati</button>
+      <button class="tbtn" id="cam" aria-pressed="false">📷 Kamera: mati</button>
+    </div>
+    <p class="hint" id="call-hint">Pakai headset supaya suara film tidak masuk lagi ke mic kamu dan terdengar dobel oleh pasangan.</p>
+    <div class="tiles" id="tiles">
+      <div class="tile" id="self-tile" hidden>
+        <video id="selfcam" class="mirror" autoplay muted playsinline></video>
+        <span class="tl">Kamu</span>
+      </div>
+    </div>
+  </section>
 </main>
 <script src="/config.js"></script>
 <script src="/vendor/peerjs.min.js"></script>
+<script src="/media.js"></script>
 <script src="/host.js"></script>
 </body>
 </html>
