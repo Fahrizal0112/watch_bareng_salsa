@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nonton Bareng</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="watch">
+<div class="stage" id="stage">
+  <video id="video" autoplay playsinline></video>
+
+  <div class="overlay-msg" id="join">
+    <h1>Nonton Bareng</h1>
+    <p class="sub" id="join-text">Klik untuk gabung ke ruangan.</p>
+    <button class="primary" id="join-btn">Gabung</button>
+  </div>
+  <div class="overlay-msg hidden" id="wait">
+    <p id="wait-text">Menunggu host membagikan layar…</p>
+  </div>
+
+  <div class="status-pill" id="pill">Menyambung…</div>
+
+  <div class="controls" id="controls">
+    <button data-cmd="seek" data-ms="-10000" title="Mundur 10 detik (←)">⏪ 10</button>
+    <button data-cmd="toggle" title="Play / Pause (Spasi)">⏯</button>
+    <button data-cmd="seek" data-ms="10000" title="Maju 10 detik (→)">10 ⏩</button>
+    <span class="sep"></span>
+    <button data-cmd="skip-intro" title="Lewati intro">Skip intro</button>
+    <button data-cmd="next" title="Episode berikutnya">Next ⏭</button>
+    <span class="sep"></span>
+    <button id="fs" title="Layar penuh (F)">⛶</button>
+  </div>
+</div>
+<script src="/config.js"></script>
+<script src="/vendor/peerjs.min.js"></script>
+<script src="/watch.js"></script>
+</body>
+</html>

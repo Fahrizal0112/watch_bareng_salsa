@@ -1,0 +1,13 @@
+{
+  "name": "watch-together",
+  "version": "1.0.0",
+  "description": "Nonton bareng lewat share layar, penonton bisa ikut mengontrol video",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "vendor": "mkdir -p public/vendor && cp node_modules/peerjs/dist/peerjs.min.js public/vendor/peerjs.min.js"
+  },
+  "devDependencies": {
+    "peerjs": "^1.5.4"
+  }
+}

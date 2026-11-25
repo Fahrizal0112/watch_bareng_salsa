@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Watch Together - Kontrol Netflix",
+  "version": "1.0.0",
+  "description": "Meneruskan perintah dari halaman Watch Together ke tab Netflix (play, pause, seek, next).",
+  "host_permissions": ["*://*.netflix.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.netflix.com/*"],
+      "js": ["netflix-relay.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.netflix.com/*"],
+      "js": ["netflix-main.js"],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    }
+  ]
+}

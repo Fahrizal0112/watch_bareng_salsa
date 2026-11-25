@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Watch Together - Host</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>Nonton Bareng</h1>
+  <p class="sub">Kamu yang share layar, pasangan bisa ikut pause, play, dan geser video.</p>
+
+  <section class="card">
+    <h2>1. Cek ekstensi</h2>
+    <div class="badges">
+      <span class="badge" id="b-ext">Ekstensi: mengecek…</span>
+      <span class="badge" id="b-nf">Netflix: -</span>
+    </div>
+    <p class="hint" id="ext-hint"></p>
+  </section>
+
+  <section class="card">
+    <h2>2. Kirim link ke pasangan</h2>
+    <div class="row grow">
+      <input type="text" id="link" readonly>
+      <button id="copy">Salin</button>
+    </div>
+    <p class="hint">Link ini memakai alamat situs yang sedang kamu buka. Buka dari alamat Vercel kamu, bukan localhost, supaya pasangan bisa mengaksesnya.</p>
+    <div class="row" style="margin-top:8px"><button id="newroom">Buat ruangan baru</button></div>
+  </section>
+
+  <section class="card">
+    <h2>3. Mulai berbagi layar</h2>
+    <div class="row">
+      <button class="primary" id="start">Bagikan layar</button>
+      <button id="stop" disabled>Berhenti</button>
+      <label class="switch"><input type="checkbox" id="allow" checked> Izinkan pasangan mengontrol</label>
+    </div>
+    <p class="hint">Di jendela pilihan Chrome, pilih tab Netflix dan centang "Bagikan audio tab".</p>
+    <div class="badges">
+      <span class="badge" id="b-conn">Server: menyambung…</span>
+      <span class="badge" id="b-viewers">Penonton: 0</span>
+    </div>
+    <video id="preview" autoplay muted playsinline hidden></video>
+  </section>
+</main>
+<script src="/config.js"></script>
+<script src="/vendor/peerjs.min.js"></script>
+<script src="/host.js"></script>
+</body>
+</html>
