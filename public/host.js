@@ -1,7 +1,7 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
-  const CMDS = new Set(['toggle', 'play', 'pause', 'seek', 'next', 'skip-intro']);
+  const CMDS = new Set(['toggle', 'play', 'pause', 'seek', 'next', 'skip-intro', 'click']);
   const cfg = window.WT_CONFIG || {};
 
   const rand = (n) =>
@@ -88,7 +88,14 @@
   function handleControl(m) {
     if (!m || m.t !== 'cmd' || !CMDS.has(m.cmd) || !allowControl) return;
     const ms = Number.isFinite(m.ms) ? Math.max(-120000, Math.min(120000, m.ms)) : 0;
-    window.postMessage({ source: 'wt-page', type: 'cmd', cmd: m.cmd, ms }, location.origin);
+    // Posisi klik harus berupa pecahan 0..1 dari lebar/tinggi gambar.
+    const frac = (n) => (typeof n === 'number' && n >= 0 && n <= 1 ? n : undefined);
+    const x = frac(m.x);
+    const y = frac(m.y);
+    if (m.cmd === 'click' && (x === undefined || y === undefined)) return;
+    // id unik per perintah supaya ekstensi bisa membuang duplikat.
+    const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    window.postMessage({ source: 'wt-page', type: 'cmd', cmd: m.cmd, ms, x, y, id }, location.origin);
   }
 
   // ---- Kirim video ke penonton ----

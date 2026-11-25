@@ -16,12 +16,58 @@
   const controlButtons = [...document.querySelectorAll('[data-cmd]')];
   function refreshControls() {
     const ok = controlAllowed && conn && conn.open;
-    controlButtons.forEach((b) => {
+    controlButtons.concat($('#clickmode')).forEach((b) => {
       b.dataset.title = b.dataset.title || b.title;
       b.disabled = !ok;
       b.title = ok ? b.dataset.title : b.dataset.title + ' (belum bisa dipakai)';
     });
+    if (!ok) setClickMode(false);
   }
+
+  // Bar kontrol disembunyikan selama tombol "Gabung" atau "Ketuk untuk memutar" tampil, supaya
+  // tidak pernah menutupi tombol itu (dan ketukan tidak jatuh ke bar).
+  const syncBlock = () => {
+    const blocked = !$('#join').classList.contains('hidden') || !$('#tap').classList.contains('hidden');
+    $('#controls').classList.toggle('blocked', blocked);
+  };
+  const mo = new MutationObserver(syncBlock);
+  ['#join', '#tap'].forEach((s) => mo.observe($(s), { attributes: true, attributeFilter: ['class'] }));
+  syncBlock();
+
+  // ---- Mode klik: ketukan di video diteruskan sebagai klik di tab host ----
+  // Hanya berlaku kalau host membagikan TAB (bukan seluruh layar), karena posisi ketukan
+  // dipetakan ke area halaman tab itu.
+  let clickMode = false;
+  function setClickMode(on) {
+    clickMode = !!on;
+    $('#clickmode').setAttribute('aria-pressed', String(clickMode));
+    $('#stage').classList.toggle('clickmode', clickMode);
+  }
+  $('#clickmode').addEventListener('click', (e) => {
+    setClickMode(!clickMode);
+    e.currentTarget.blur();
+  });
+  video.addEventListener('click', (e) => {
+    if (!clickMode) return;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return;
+    // Video memakai object-fit: contain, jadi hitung area gambar yang sebenarnya.
+    const r = video.getBoundingClientRect();
+    const scale = Math.min(r.width / vw, r.height / vh);
+    const cw = vw * scale;
+    const ch = vh * scale;
+    const x = (e.clientX - (r.left + (r.width - cw) / 2)) / cw;
+    const y = (e.clientY - (r.top + (r.height - ch) / 2)) / ch;
+    if (x < 0 || x > 1 || y < 0 || y > 1) return;
+    cmd('click', undefined, x, y);
+    const dot = document.createElement('div');
+    dot.className = 'ripple';
+    dot.style.left = e.clientX + 'px';
+    dot.style.top = e.clientY + 'px';
+    document.body.append(dot);
+    setTimeout(() => dot.remove(), 600);
+  });
   function showWait(text) {
     $('#wait-text').textContent = text;
     $('#wait').classList.remove('hidden');
@@ -44,9 +90,9 @@
   ['mousemove', 'touchstart', 'keydown'].forEach((ev) => document.addEventListener(ev, wake, { passive: true }));
 
   // ---- Kirim perintah ----
-  function cmd(name, ms) {
+  function cmd(name, ms, x, y) {
     if (!conn || !conn.open || !controlAllowed) return;
-    conn.send({ t: 'cmd', cmd: name, ms });
+    conn.send({ t: 'cmd', cmd: name, ms, x, y });
   }
   controlButtons.forEach((b) =>
     b.addEventListener('click', () => cmd(b.dataset.cmd, b.dataset.ms ? Number(b.dataset.ms) : undefined))
@@ -249,10 +295,65 @@
     });
   }
 
+  // ---- Diagnosis: kalau macet di "Menyambung…", tampilkan penyebabnya di layar ----
+  let attempts = 0;
+  let lastError = '';
+  async function showDiag() {
+    const box = $('#diag');
+    box.classList.remove('hidden');
+    const lines = ['Pustaka koneksi: ' + (typeof Peer === 'function' ? 'ok' : 'GAGAL dimuat')];
+    lines.push('Online: ' + (navigator.onLine ? 'ya' : 'tidak'));
+    const ps = cfg.peerServer || {};
+    const host = ps.host || '0.peerjs.com';
+    const url = `https://${host}${ps.port && ps.port !== 443 ? ':' + ps.port : ''}${ps.path || '/'}peerjs/id`;
+    box.textContent = lines.join('\n') + '\nMemeriksa server…';
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 6000);
+      const r = await fetch(url, { cache: 'no-store', signal: ctl.signal });
+      clearTimeout(timer);
+      lines.push(`Server ${host}: HTTP ${r.status}`);
+    } catch (err) {
+      lines.push(`Server ${host}: tidak terjangkau (${(err && err.name) || 'error'})`);
+    }
+    lines.push('Error terakhir: ' + (lastError || '-'));
+    lines.push('Percobaan: ' + attempts);
+    lines.push(navigator.userAgent.slice(0, 110));
+    box.textContent = lines.join('\n');
+  }
+
   function startPeer() {
+    if (typeof Peer !== 'function') {
+      lastError = 'pustaka PeerJS tidak termuat';
+      showWait('Pustaka koneksi gagal dimuat. Refresh halaman ini atau pakai browser yang lebih baru.');
+      showDiag();
+      return;
+    }
     const opts = { config: { iceServers: cfg.iceServers }, ...(cfg.peerServer || {}) };
-    peer = new Peer(opts);
-    peer.on('open', connectHost);
+    try {
+      peer = new Peer(opts);
+    } catch (err) {
+      lastError = String(err && err.message ? err.message : err);
+      showWait('Gagal memulai koneksi.');
+      showDiag();
+      return;
+    }
+    const mine = peer;
+    mine.on('open', () => {
+      $('#diag').classList.add('hidden');
+      connectHost();
+    });
+    // Kalau server tidak menjawab dalam 10 detik (WebSocket menggantung tanpa error), tampilkan
+    // diagnosis lalu coba lagi dengan koneksi baru, maksimal 3 kali.
+    setTimeout(() => {
+      if (peer !== mine || mine.open || mine.destroyed) return;
+      showWait('Belum tersambung ke server. Mencoba lagi…');
+      showDiag();
+      if (++attempts < 3) {
+        try { mine.destroy(); } catch {}
+        startPeer();
+      }
+    }, 10000);
 
     // Host memanggil kita ketika mulai (atau mulai ulang) share layar.
     // Hanya terima panggilan dari host: layar (default), kamera, atau mic.
@@ -298,7 +399,9 @@
         showWait('Host belum membuka halamannya. Halaman ini akan menyambung otomatis.');
         scheduleReconnect(3000);
       } else {
+        lastError = err.type + (err.message ? ' - ' + String(err.message).slice(0, 60) : '');
         setStatus('Error: ' + err.type);
+        showDiag();
         if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
           showWait('Tidak bisa menghubungi server. Mencoba lagi…');
           if (peer.destroyed) setTimeout(startPeer, 3000);

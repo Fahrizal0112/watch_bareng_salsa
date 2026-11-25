@@ -31,5 +31,10 @@ scan();
 window.addEventListener('load', scan);
 
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg && msg.cmd) window.postMessage({ source: 'wt-to-main', cmd: msg.cmd, ms: msg.ms }, '*');
+  if (msg && msg.cmd) {
+    window.postMessage(
+      { source: 'wt-to-main', cmd: msg.cmd, ms: msg.ms, x: msg.x, y: msg.y, id: msg.id },
+      '*'
+    );
+  }
 });

@@ -62,6 +62,13 @@ button.primary { background: var(--accent); }
 .switch { display: flex; gap: 8px; align-items: center; cursor: pointer; }
 video#preview { width: 100%; max-height: 260px; background: #000; border-radius: 8px; margin-top: 12px; }
 
+.diag {
+  font: 12px/1.5 ui-monospace, Menlo, monospace; color: var(--muted); text-align: left;
+  max-width: 90vw; white-space: pre-wrap; word-break: break-all;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0;
+}
+.diag.hidden { display: none; }
+
 /* Video call */
 .tbtn[aria-pressed="true"] { background: var(--ok); color: #04210b; }
 .tbtn[aria-pressed="false"] { background: #3a2226; }
@@ -88,7 +95,7 @@ body.watch { overflow: hidden; }
 .stage { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; }
 .stage video { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .overlay-msg {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
+  position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px;
 }
 .overlay-msg.hidden { display: none; }
@@ -100,7 +107,21 @@ body.watch { overflow: hidden; }
   border-radius: 14px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   transition: opacity 0.25s;
 }
-.controls.idle { opacity: 0; pointer-events: none; }
+.controls.idle { opacity: 0; }
+/* Wadah bar tidak menangkap ketukan, hanya tombol-tombolnya. Jadi celah kosong di bar
+   tidak pernah menghalangi tombol lain di bawahnya. */
+.controls { z-index: 5; pointer-events: none; }
+.controls > * { pointer-events: auto; }
+.controls.idle > * { pointer-events: none; }
+.controls.blocked { display: none; }
+.stage.clickmode video { cursor: crosshair; }
+#clickmode[aria-pressed="true"] { background: var(--accent); }
+.ripple {
+  position: fixed; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
+  border: 3px solid var(--accent); pointer-events: none; z-index: 20;
+  animation: ripple 0.5s ease-out forwards;
+}
+@keyframes ripple { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
 .controls button { min-width: 48px; font-size: 15px; }
 .controls .sep { width: 1px; background: var(--line); margin: 0 4px; }
 .controls select {
@@ -114,3 +135,12 @@ body.watch { overflow: hidden; }
   padding: 4px 12px; border-radius: 999px; transition: opacity 0.25s;
 }
 .status-pill.idle { opacity: 0; }
+
+/* Layar kecil (HP, iPad mini portrait): bar lebih ringkas supaya tidak menjangkau tengah layar.
+   Ditaruh paling akhir agar menimpa aturan .controls button di atas. */
+@media (max-width: 760px) {
+  .controls { gap: 4px; padding: 6px 8px; bottom: 12px; }
+  .controls button { min-width: 40px; padding: 8px 9px; font-size: 14px; }
+  .controls select { padding: 8px 6px; font-size: 14px; }
+  .controls .res, .controls .sep { display: none; }
+}

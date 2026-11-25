@@ -86,7 +86,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (msg.type === 'cmd' && target) {
         try {
           // Tanpa frameId: dikirim ke semua frame di tab, yang punya video akan bereaksi.
-          await chrome.tabs.sendMessage(target.id, { cmd: msg.cmd, ms: msg.ms });
+          await chrome.tabs.sendMessage(target.id, {
+            cmd: msg.cmd,
+            ms: msg.ms,
+            x: msg.x,
+            y: msg.y,
+            id: msg.id || crypto.randomUUID(),
+          });
           delivered = true;
         } catch {
           delivered = false; // tidak ada script ekstensi di tab itu

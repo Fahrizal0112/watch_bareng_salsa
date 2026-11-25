@@ -17,6 +17,7 @@
   </div>
   <div class="overlay-msg hidden" id="wait">
     <p id="wait-text">Menunggu host membagikan layar…</p>
+    <pre class="diag hidden" id="diag"></pre>
   </div>
 
   <div class="overlay-msg hidden" id="tap">
@@ -45,6 +46,7 @@
     <span class="sep"></span>
     <button data-cmd="skip-intro" title="Lewati intro">Skip intro</button>
     <button data-cmd="next" title="Episode berikutnya">Next ⏭</button>
+    <button id="clickmode" aria-pressed="false" title="Mode klik: ketuk video untuk mengklik di layar host (misalnya tombol play di tengah)">🖱 Klik</button>
     <span class="sep"></span>
     <button class="tbtn" id="mic" aria-pressed="false" title="Nyalakan / matikan mic (M)">🎤 Off</button>
     <button class="tbtn" id="cam" aria-pressed="false" title="Nyalakan / matikan kamera (V)">📷 Off</button>

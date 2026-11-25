@@ -52,7 +52,9 @@ Catatan keamanan: bagian pemutar ekstensi (`player-relay.js`, `player-main.js`) 
 
 Kontrol penonton: tombol di layar, atau keyboard Spasi (play/pause), panah kiri/kanan (±10 detik), F (layar penuh), M (mic), V (kamera).
 
-Switch "Izinkan pasangan mengontrol" bisa kamu matikan kapan saja. Link ruangan tetap sama tiap nonton (tersimpan di browser host). Klik "Buat ruangan baru" kalau mau ganti link.
+**Mode Klik** (tombol 🖱 Klik di bar kontrol penonton): saat menyala, ketukan penonton di video diteruskan sebagai klik di tab host, jadi tombol yang hanya berupa gambar di layar (misalnya tombol play besar di tengah video YouTube) bisa diklik. Syaratnya host membagikan **tab** (bukan seluruh layar), karena posisi ketukan dipetakan ke area halaman tab itu. Defaultnya mati supaya ketukan biasa tidak ikut menge-klik video host. Klik ke dalam iframe (pemutar tertanam) tidak didukung.
+
+Switch "Izinkan pasangan mengontrol" bisa kamu matikan kapan saja. Mematikannya juga mematikan mode Klik. Link ruangan tetap sama tiap nonton (tersimpan di browser host). Klik "Buat ruangan baru" kalau mau ganti link.
 
 ## Kualitas video
 
@@ -70,6 +72,7 @@ Penonton bisa memilih kualitas dari dropdown di bar kontrol: Terbaik, 720p, 480p
 
 Penonton **tidak perlu memasang apa pun**. Cukup buka link di Safari atau Chrome, lalu ketuk **Gabung**. Ekstensi hanya untuk host dan hanya bisa dipasang di Chrome desktop.
 
+- **Tidak harus satu jaringan wifi.** Penonton bisa di mana saja asal ada internet. Kalau macet di "Menyambung…", setelah 10 detik layar menampilkan hasil pemeriksaan (pustaka, koneksi, server, error terakhir) dan mencoba lagi sampai 3 kali. Kirim tulisan itu kalau tetap gagal.
 - Kalau suara atau video tidak langsung main, akan muncul tombol "Ketuk untuk memutar". Itu pembatasan pemutaran otomatis di Safari.
 - Bar kontrol tersembunyi setelah 3 detik. Sentuh layar untuk memunculkannya lagi.
 - Pintasan keyboard tidak berlaku di layar sentuh, pakai tombol di layar.
@@ -93,6 +96,7 @@ npm start       # http://localhost:3000
 - **Tidak ada suara film**: share tab, bukan layar penuh, dan centang "Bagikan audio tab". Share seluruh layar di macOS tidak membawa suara.
 - **Badge "Video: belum ada yang diputar"**: buka videonya (tidak di-mute) di tab lain, ukuran video lebih dari 320×180 px. Kalau ada beberapa tab video, yang dikontrol adalah yang sedang bersuara, lalu yang paling baru diputar, lalu yang paling baru terlihat punya video.
 - **Pesan "Perintah penonton gagal sampai ke ..."**: tab video itu belum punya script ekstensi. Refresh tab tersebut (F5).
+- **Play/pause tidak bereaksi**: ekstensi mencoba bertingkat (API pemutar, lalu elemen video, lalu tombol situs, lalu klik video) dan memeriksa hasilnya tiap tahap. Cara yang berhasil atau gagal tercatat di console tab video (tekan F12, filter `watch-together`). Kirim isinya kalau masih bermasalah.
 - **Skip intro / next tidak bereaksi**: selector tombol situs sering berubah. Netflix, YouTube, dan Prime punya selector sendiri, situs lain dicari lewat teks tombolnya ("Next episode", "Skip intro", "Lewati"). Perbaiki di `extension/player-main.js`.
 - **Badge ekstensi "belum terdeteksi"**: pastikan alamat situs ada di `matches` manifest, reload ekstensi, lalu refresh halaman host.
 - **"Menunggu sesi lama habis" setelah refresh host**: normal, server PeerJS butuh beberapa detik melepas sesi lama.
